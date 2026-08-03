@@ -1,0 +1,188 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String?
+  role       String   // SUPER_ADMIN, ADMIN, TEACHER, STUDENT, GUARDIAN
+  phone      String?
+  password   String
+  avatar_url String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  studentProfile Student?
+  teacherProfile Teacher?
+}
+
+model AcademicYear {
+  id                String   @id @default(cuid())
+  year_name         String
+  start_date        DateTime
+  end_date          DateTime
+  is_active         Boolean  @default(false)
+  is_admission_open Boolean  @default(false)
+  exams             Exam[]
+}
+
+model Class {
+  id               String   @id @default(cuid())
+  name             String
+  display_name     String
+  level_order      Int
+  section          String
+  max_students     Int
+  class_teacher_id String?
+  class_teacher    Teacher? @relation(fields: [class_teacher_id], references: [id])
+  subjects         Subject[]
+  students         Student[]
+  attendances      Attendance[]
+  feeStructures    FeeStructure[]
+}
+
+model Subject {
+  id         String   @id @default(cuid())
+  name       String
+  code       String
+  type       String   // THEORY, PRACTICAL
+  class_id   String
+  class      Class    @relation(fields: [class_id], references: [id])
+  teacher_id String?
+  teacher    Teacher? @relation(fields: [teacher_id], references: [id])
+  max_marks  Int
+  pass_marks Int
+  results    Result[]
+}
+
+model Student {
+  id               String   @id @default(cuid())
+  enrollment_id    String   @unique // JK-2025-001
+  user_id          String   @unique
+  user             User     @relation(fields: [user_id], references: [id])
+  first_name       String
+  last_name        String
+  class_id         String
+  class            Class    @relation(fields: [class_id], references: [id])
+  dob              DateTime
+  guardian_name    String
+  guardian_phone   String
+  guardian_email   String?
+  status           String   // ENROLLED, APPLICANT, ALUMNI
+  can_edit_profile Boolean  @default(false)
+  address          String?
+  attendances      Attendance[]
+  results          Result[]
+  feeRecords       FeeRecord[]
+  documents        Document[]
+}
+
+model Teacher {
+  id             String   @id @default(cuid())
+  staff_id       String   @unique // TCH-001
+  user_id        String   @unique
+  user           User     @relation(fields: [user_id], references: [id])
+  title          String   // "Ustaza"
+  designation    String
+  qualifications String   // JSON or comma separated
+  salary         Float
+  status         String   // ACTIVE, ON_LEAVE
+  classes        Class[]
+  subjects       Subject[]
+}
+
+model Attendance {
+  id         String   @id @default(cuid())
+  date       DateTime
+  student_id String
+  student    Student  @relation(fields: [student_id], references: [id])
+  class_id   String
+  class      Class    @relation(fields: [class_id], references: [id])
+  status     String   // PRESENT, ABSENT, LATE, LEAVE
+}
+
+model Exam {
+  id               String   @id @default(cuid())
+  name             String
+  term             String
+  academic_year_id String
+  academic_year    AcademicYear @relation(fields: [academic_year_id], references: [id])
+  results          Result[]
+}
+
+model Result {
+  id             String   @id @default(cuid())
+  exam_id        String
+  exam           Exam     @relation(fields: [exam_id], references: [id])
+  student_id     String
+  student        Student  @relation(fields: [student_id], references: [id])
+  subject_id     String
+  subject        Subject  @relation(fields: [subject_id], references: [id])
+  marks_obtained Float
+  remarks        String?
+}
+
+model FeeStructure {
+  id         String   @id @default(cuid())
+  class_id   String
+  class      Class    @relation(fields: [class_id], references: [id])
+  fee_type   String
+  amount     Float
+}
+
+model FeeRecord {
+  id             String   @id @default(cuid())
+  student_id     String
+  student        Student  @relation(fields: [student_id], references: [id])
+  fee_type       String
+  total_amount   Float
+  paid_amount    Float
+  due_date       DateTime
+  status         String   // PAID, PENDING, OVERDUE, PARTIAL
+  receipt_number String?
+  payment_date   DateTime?
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  student_id  String
+  student     Student  @relation(fields: [student_id], references: [id])
+  title       String
+  doc_type    String   // AADHAAR, TC, BIRTH_CERT
+  file_url    String
+  uploaded_at DateTime @default(now())
+}
+
+model Notice {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  target_role String
+  created_at  DateTime @default(now())
+}
+
+model Admission {
+  id               String   @id @default(cuid())
+  applicant_name   String
+  dob              DateTime
+  class_applied    String
+  father_name      String
+  mother_name      String
+  phone            String
+  address          String
+  status           String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  academic_year_id String?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
