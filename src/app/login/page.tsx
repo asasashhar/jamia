@@ -3,10 +3,15 @@ import { prisma } from "@/lib/prisma";
 
 export default async function LoginPage() {
   // Check if admission is currently open
-  const activeYear = await prisma.academicYear.findFirst({
-    where: { is_active: true },
-  });
-  const isAdmissionOpen = activeYear?.is_admission_open ?? false;
+  let isAdmissionOpen = false;
+  try {
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { is_active: true },
+    });
+    isAdmissionOpen = activeYear?.is_admission_open ?? false;
+  } catch {
+    isAdmissionOpen = false;
+  }
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">

@@ -1,5 +1,6 @@
 // Shared design system components for Jamia SMS
 // Premium Islamic-themed component library
+import Link from "next/link";
 
 // ─── Page Header ────────────────────────────────────────────────────────────
 interface PageHeaderProps {
@@ -155,7 +156,6 @@ export function Td({ children, className = "" }: { children: React.ReactNode; cl
 
 // ─── Action Button ───────────────────────────────────────────────────────────
 interface ActionBtnProps { href?: string; onClick?: () => void; children: React.ReactNode; variant?: "primary" | "outline"; }
-import Link from "next/link";
 export function ActionBtn({ href, children, variant = "primary" }: { href?: string; children: React.ReactNode; variant?: "primary" | "outline" }) {
   const base = "inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 shadow-sm hover-lift";
   const primary = "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground btn-glow";

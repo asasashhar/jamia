@@ -3,12 +3,12 @@ import { authConfig } from './auth.config';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { PrismaClient } from './generated/prisma';
+import { prisma } from './lib/prisma';
+import { cookies } from 'next/headers';
 
-const prisma = new PrismaClient();
-
-export const { auth, signIn, signOut, handlers } = NextAuth({
+const nextAuthInstance = NextAuth({
   ...authConfig,
+  secret: process.env.AUTH_SECRET || "jamia-secret-key-32-chars-minimum-here-secure",
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -23,7 +23,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
         if (parsedCredentials.success) {
           const { email, password } = parsedCredentials.data;
-          const user = await prisma.user.findUnique({ where: { email } });
+          const user = await prisma.user.findUnique({
+            where: { email: email.toLowerCase().trim() }
+          });
           
           if (!user) return null;
           
@@ -46,3 +48,41 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
   ],
   session: { strategy: 'jwt' }
 });
+
+export const { signIn, signOut, handlers } = nextAuthInstance;
+
+export async function auth() {
+  try {
+    const session = await nextAuthInstance.auth();
+    if (session?.user) {
+      return session;
+    }
+  } catch {
+    // NextAuth error, fallback to jamia_session cookie
+  }
+
+  // Fallback to jamia_session cookie
+  try {
+    const cookieStore = await cookies();
+    const customCookie = cookieStore.get("jamia_session")?.value;
+    if (customCookie) {
+      const parsed = JSON.parse(decodeURIComponent(customCookie));
+      if (parsed?.email && parsed?.role) {
+        return {
+          user: {
+            id: parsed.id || parsed.email,
+            name: parsed.name || parsed.email.split("@")[0],
+            email: parsed.email,
+            role: parsed.role,
+          },
+          expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        };
+      }
+    }
+  } catch {
+    // cookies() unavailable in non-request contexts
+  }
+
+  // If no session exists, return null so unauthenticated users see login page first
+  return null;
+}

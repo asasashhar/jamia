@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { motion, AnimatePresence } from "framer-motion";
 import { authenticate } from "./actions";
 import { Loader2, Mail, Lock, AlertCircle, ClipboardList, School } from "lucide-react";
 
@@ -20,7 +20,8 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ isAdmissionOpen }: LoginFormProps) {
-  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
   const {
@@ -32,23 +33,30 @@ export function LoginForm({ isAdmissionOpen }: LoginFormProps) {
     defaultValues: { email: "", password: "" },
   });
 
-  function onSubmit(values: FormData) {
+  async function onSubmit(values: FormData) {
     setError(undefined);
-    startTransition(async () => {
+    setIsPending(true);
+    try {
       const formData = new FormData();
-      formData.append("email", values.email);
+      formData.append("email", values.email.trim());
       formData.append("password", values.password);
-      const errorMessage = await authenticate(undefined, formData);
-      if (errorMessage) setError(errorMessage);
-    });
+      const res = await authenticate(undefined, formData);
+      if (res?.error) {
+        setError(res.error);
+        setIsPending(false);
+      } else {
+        const dest = res?.redirectTo || "/admin/dashboard";
+        router.push(dest);
+        router.refresh();
+      }
+    } catch {
+      setError("An unexpected error occurred. Please try again.");
+      setIsPending(false);
+    }
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-    >
+    <div className="w-full">
       {/* Glassmorphism card */}
       <div className="relative bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
         {/* Gold top bar */}
@@ -56,27 +64,18 @@ export function LoginForm({ isAdmissionOpen }: LoginFormProps) {
 
         {/* Header */}
         <div className="px-8 pt-8 pb-6 text-center">
-          <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.4, type: "spring" }}
-            className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center shadow-lg"
-          >
+          <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center shadow-lg">
             <School className="w-8 h-8 text-[#07301A]" />
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
+          <div>
             <h1 className="text-2xl font-bold text-white tracking-tight leading-tight">
               Jamia Khadijatul Kubra
             </h1>
             <p className="text-amber-300 text-sm font-medium mt-0.5 tracking-wide">
               Lil Banat — School Management System
             </p>
-          </motion.div>
+          </div>
         </div>
 
         {/* Divider */}
@@ -127,27 +126,18 @@ export function LoginForm({ isAdmissionOpen }: LoginFormProps) {
           </div>
 
           {/* Error message */}
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="flex items-center gap-2 bg-red-500/20 border border-red-400/30 text-red-200 text-sm p-3 rounded-xl"
-              >
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {error}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {error && (
+            <div className="flex items-center gap-2 bg-red-500/20 border border-red-400/30 text-red-200 text-sm p-3 rounded-xl">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {error}
+            </div>
+          )}
 
           {/* Submit button */}
-          <motion.button
+          <button
             type="submit"
             disabled={isPending}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full h-11 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-[#07301A] font-bold text-sm shadow-lg hover:shadow-amber-400/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full h-11 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-[#07301A] font-bold text-sm shadow-lg hover:shadow-amber-400/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.98]"
           >
             {isPending ? (
               <>
@@ -157,15 +147,11 @@ export function LoginForm({ isAdmissionOpen }: LoginFormProps) {
             ) : (
               "Sign In to Portal"
             )}
-          </motion.button>
+          </button>
 
           {/* Admission Apply Link */}
           {isAdmissionOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
+            <div>
               <div className="relative flex items-center my-1">
                 <div className="flex-1 h-px bg-white/15" />
                 <span className="px-3 text-white/30 text-xs">or</span>
@@ -178,7 +164,7 @@ export function LoginForm({ isAdmissionOpen }: LoginFormProps) {
                 <ClipboardList className="w-4 h-4" />
                 Apply for Admission — Open Now!
               </a>
-            </motion.div>
+            </div>
           )}
         </form>
 
@@ -189,19 +175,6 @@ export function LoginForm({ isAdmissionOpen }: LoginFormProps) {
           </p>
         </div>
       </div>
-
-      {/* Hint box below card */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="mt-4 p-4 rounded-xl bg-black/30 backdrop-blur-sm border border-white/10 text-xs text-white/50 text-center space-y-1"
-      >
-        <p className="font-semibold text-white/70 mb-2">Demo Credentials</p>
-        <p>🔑 Admin: <span className="text-amber-300">admin@jamia.edu</span> / <span className="text-amber-300">admin123</span></p>
-        <p>📚 Teacher: <span className="text-amber-300">khadija@jamia.edu</span> / <span className="text-amber-300">teacher123</span></p>
-        <p>🎓 Student: <span className="text-amber-300">student1@jamia.edu</span> / <span className="text-amber-300">student123</span></p>
-      </motion.div>
-    </motion.div>
+    </div>
   );
 }

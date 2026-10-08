@@ -171,7 +171,7 @@ function SidebarContent({ name, email, role, onClose }: SidebarContentProps) {
         </div>
 
         {/* Sign out */}
-        <a href="/api/auth/signout?callbackUrl=/login"
+        <a href="/api/logout"
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 w-full"
           style={{ color: "rgba(255,255,255,0.4)" }}
           onMouseEnter={e => {

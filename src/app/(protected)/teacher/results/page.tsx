@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { BookOpen } from "lucide-react";
 
 export default async function TeacherResultsPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

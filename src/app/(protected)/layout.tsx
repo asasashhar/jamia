@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Bell, Search } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   const today = new Date().toLocaleDateString("en-US", {
